@@ -1,33 +1,33 @@
 const { nanoid } = require('nanoid');
 const notes = require('./notes');
 
-const getAllNotesHandler = () => ({
-    status: 'success',
-    data: {
-    notes,
-},
-});
-
-const getNotesByIdHandler = (request, h) => {
-    const { id } = request.params;
-
-    const note = notes.find((n) => n.id === id);
-
-    if (note !== undefined) {
-    return {
+    const getAllNotesHandler = () => ({
         status: 'success',
         data: {
-        note,
+        notes,
     },
+});
+
+    const getNotesByIdHandler = (request, h) => {
+        const { id } = request.params;
+
+        const note = notes.find((n) => n.id === id);
+
+            if (note !== undefined) {
+            return {
+                status: 'success',
+                data: {
+                note,
+            },
     };
 }
 
-const response = h.response({
-    status: 'fail',
-    message: 'Catatan tidak ditemukan',
-});
-    response.code(404);
-    return response;
+    const response = h.response({
+        status: 'fail',
+        message: 'Catatan tidak ditemukan',
+    });
+        response.code(404);
+        return response;
 };
 
 const addNotesHandler = (request, h) => {
