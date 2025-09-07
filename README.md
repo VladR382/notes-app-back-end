@@ -1,80 +1,76 @@
-# Notes App Back-end (Versi Refactor)
+# Notes App Back-end
 
-Ini adalah repositori untuk RESTful API sederhana yang dibangun dengan **Hapi**. Aplikasi ini merupakan hasil refactor dari versi sebelumnya, dengan menerapkan arsitektur yang lebih modular untuk mengelola *notes* (catatan).
-
-Aplikasi ini memungkinkan pengguna untuk melakukan operasi CRUD (Create, Read, Update, Delete) pada catatan. Data catatan disimpan sementara di dalam memori (*in-memory*).
+Ini adalah repositori untuk RESTful API yang dibangun dengan **Hapi**. Aplikasi ini memungkinkan pengguna untuk mendaftar, masuk, dan mengelola *notes* (catatan) pribadi mereka. Data disimpan dalam database **PostgreSQL** dan sistem autentikasi diamankan menggunakan **JSON Web Tokens (JWT)**.
 
 ## Fitur
 
-  * **Tambah Catatan Baru**: Membuat catatan baru dengan judul, isi, dan tag.
-  * **Lihat Semua Catatan**: Mendapatkan daftar semua catatan yang telah disimpan.
-  * **Lihat Detail Catatan**: Mendapatkan detail catatan berdasarkan ID uniknya.
-  * **Ubah Catatan**: Memperbarui catatan yang ada berdasarkan ID-nya.
-  * **Hapus Catatan**: Menghapus catatan berdasarkan ID-nya.
-  * **Validasi Input**: Memastikan data yang dikirim oleh klien sesuai dengan skema yang ditentukan menggunakan **Joi**.
-  * **Penanganan Error Terstruktur**: Menggunakan *custom error* untuk memberikan respons yang jelas dan informatif ketika terjadi kesalahan.
+  * **Manajemen Pengguna**:
+      * **Registrasi Pengguna Baru**: Membuat akun pengguna baru dengan username, password (dienkripsi), dan nama lengkap.
+      * **Login Pengguna**: Mengautentikasi pengguna dan memberikan *access token* serta *refresh token* (JWT).
+      * **Refresh Token**: Memperbarui *access token* yang sudah kedaluwarsa tanpa perlu login kembali.
+  * **Manajemen Catatan (CRUD)**:
+      * **Tambah Catatan**: Membuat catatan baru yang terikat pada pengguna yang sedang login.
+      * **Lihat Semua Catatan**: Mendapatkan daftar semua catatan milik pengguna yang sedang login.
+      * **Lihat Detail Catatan**: Mendapatkan detail catatan berdasarkan ID, dengan verifikasi kepemilikan.
+      * **Ubah Catatan**: Memperbarui catatan yang ada berdasarkan ID, dengan verifikasi kepemilikan.
+      * **Hapus Catatan**: Menghapus catatan berdasarkan ID, dengan verifikasi kepemilikan.
+  * **Keamanan & Validasi**:
+      * **Otorisasi**: Pengguna hanya dapat mengakses dan memodifikasi catatan milik mereka sendiri.
+      * **Validasi Input**: Memastikan semua data yang dikirim oleh klien sesuai dengan skema yang ditentukan menggunakan **Joi**.
+      * **Penanganan Error**: Menggunakan *custom error* untuk memberikan respons yang jelas saat terjadi kesalahan pada permintaan klien atau server.
 
 ## Teknologi yang Digunakan
 
-  * **[Hapi](https://hapi.dev/)**: Framework Node.js untuk membangun RESTful API yang andal dan dapat diskalakan.
-  * **[Joi](https://joi.dev/)**: Pustaka validasi skema objek untuk memastikan integritas data.
-  * **[nanoid](https://github.com/ai/nanoid)**: Pustaka untuk menghasilkan ID unik yang ringkas dan aman.
-  * **[Nodemon](https://nodemon.io/)**: Utilitas untuk me-restart server secara otomatis saat ada perubahan file dalam mode pengembangan.
-  * **[ESLint](https://eslint.org/)**: Alat untuk menganalisis dan menjaga konsistensi gaya penulisan kode.
+  * **[Hapi](https://hapi.dev/)**: Framework Node.js untuk membangun RESTful API.
+  * **[PostgreSQL](https://www.postgresql.org/)**: Sistem manajemen basis data relasional sebagai penyimpan data.
+  * **[@hapi/jwt](https://github.com/hapijs/jwt)**: Plugin Hapi untuk autentikasi menggunakan JSON Web Tokens.
+  * **[bcrypt](https://www.npmjs.com/package/bcrypt)**: Pustaka untuk mengenkripsi dan memverifikasi password.
+  * **[Joi](https://joi.dev/)**: Pustaka validasi skema objek.
+  * **[nanoid](https://github.com/ai/nanoid)**: Pustaka untuk menghasilkan ID unik.
+  * **[node-pg-migrate](https://github.com/salsita/node-pg-migrate)**: Alat untuk mengelola migrasi skema database.
+  * **[ESLint](https://eslint.org/)**: Alat untuk menjaga konsistensi gaya penulisan kode.
+  * **[Nodemon](https://nodemon.io/)**: Utilitas untuk me-restart server secara otomatis saat ada perubahan file.
 
 ## Struktur Proyek
 
-Struktur proyek telah di-refactor untuk memisahkan setiap concern ke dalam modulnya masing-masing, membuatnya lebih mudah untuk dikelola dan dikembangkan.
-
 ```
 .
+├── migrations/         # File migrasi database
 ├── node_modules/
 ├── src/
 │   ├── api/
-│   │   └── notes/
-│   │       ├── index.js      # Plugin Hapi untuk notes
-│   │       ├── handler.js      # Logika handler untuk setiap rute
-│   │       └── routes.js       # Definisi rute-rute API notes
-│   ├── exceptions/
-│   │   ├── ClientError.js    # Class error kustom untuk kesalahan klien
-│   │   ├── InvariantError.js # Error untuk kegagalan validasi
-│   │   └── NotFoundError.js  # Error untuk sumber daya tidak ditemukan
+│   │   ├── notes/        # Modul untuk fitur Notes
+│   │   ├── users/        # Modul untuk fitur Users
+│   │   └── authentications/ # Modul untuk fitur Authentications
+│   ├── exceptions/       # Class error kustom
 │   ├── services/
-│   │   └── inMemory/
-│   │       └── NotesService.js # Logika bisnis (CRUD) untuk notes
-│   ├── validator/
-│   │   └── notes/
-│   │       ├── index.js      # Validator untuk payload notes
-│   │       └── schema.js       # Skema Joi untuk validasi
-│   └── server.js           # Inisialisasi dan konfigurasi server Hapi
+│   │   └── postgres/     # Logika bisnis (CRUD) dengan database PostgreSQL
+│   ├── tokenize/
+│   │   └── TokenManager.js # Logika pembuatan dan verifikasi JWT
+│   ├── validator/        # Skema validasi Joi untuk setiap modul
+│   └── server.js         # Inisialisasi dan konfigurasi server Hapi
+├── .env                  # (Contoh) File konfigurasi environment
 ├── .gitignore
-├── eslint.config.mjs       # Konfigurasi ESLint
+├── eslint.config.mjs
 ├── package-lock.json
-├── package.json
-└── README.md
+└── package.json
 ```
 
 ## API Endpoints
 
 Berikut adalah rute API yang tersedia:
 
-| Metode | Path          | Deskripsi                                |
-| :----- | :------------ | :--------------------------------------- |
-| `POST` | `/notes`      | Menambahkan catatan baru.                |
-| `GET`  | `/notes`      | Mendapatkan semua catatan.               |
-| `GET`  | `/notes/{id}` | Mendapatkan detail catatan berdasarkan ID. |
-| `PUT`  | `/notes/{id}` | Mengubah catatan yang ada berdasarkan ID.|
-| `DELETE`| `/notes/{id}`| Menghapus catatan berdasarkan ID.        |
-
-### Contoh Request Body untuk `POST /notes` dan `PUT /notes/{id}`
-
-```json
-{
-    "title": "Judul Catatan Baru",
-    "body": "Isi dari catatan yang detail...",
-    "tags": ["tutorial", "hapi"]
-}
-```
+| Metode | Path | Deskripsi | Memerlukan Autentikasi |
+| :--- | :--- | :--- |:---:|
+| `POST` | `/users` | Mendaftarkan pengguna baru. | Tidak |
+| `POST`| `/authentications` | Login untuk mendapatkan token. | Tidak |
+| `PUT`| `/authentications` | Memperbarui access token. | Tidak |
+| `DELETE`| `/authentications` | Menghapus refresh token (logout). | Tidak |
+| `POST` | `/notes` | Menambahkan catatan baru. | **Ya** |
+| `GET` | `/notes` | Mendapatkan semua catatan milik pengguna. | **Ya** |
+| `GET` | `/notes/{id}` | Mendapatkan detail catatan berdasarkan ID. | **Ya** |
+| `PUT` | `/notes/{id}` | Mengubah catatan berdasarkan ID. | **Ya** |
+| `DELETE`| `/notes/{id}`| Menghapus catatan berdasarkan ID. | **Ya** |
 
 ## Persiapan dan Instalasi
 
@@ -86,10 +82,36 @@ Berikut adalah rute API yang tersedia:
     ```
 
 2.  **Instal semua dependensi:**
-    Gunakan `npm` untuk menginstal semua dependensi yang dibutuhkan yang tercantum dalam file `package.json`.
 
     ```bash
     npm install
+    ```
+
+3.  **Konfigurasi Environment Variable:**
+    Buat file `.env` di root proyek dan isi dengan konfigurasi database serta kunci untuk token JWT. Contoh:
+
+    ```.env
+    HOST=localhost
+    PORT=5000
+
+    # Konfigurasi Database PostgreSQL
+    PGUSER=user
+    PGPASSWORD=password
+    PGDATABASE=notesdb
+    PGHOST=localhost
+    PGPORT=5432
+
+    # Kunci JWT
+    ACCESS_TOKEN_KEY=kunci_rahasia_access_token
+    REFRESH_TOKEN_KEY=kunci_rahasia_refresh_token
+    ACCESS_TOKEN_AGE=1800
+    ```
+
+4.  **Jalankan Migrasi Database:**
+    Pastikan server PostgreSQL Anda berjalan. Kemudian, jalankan perintah berikut untuk membuat tabel-tabel yang dibutuhkan.
+
+    ```bash
+    npm run migrate up
     ```
 
 ## Menjalankan Aplikasi
@@ -97,24 +119,23 @@ Berikut adalah rute API yang tersedia:
 Anda dapat menjalankan server dalam mode pengembangan atau produksi.
 
   * **Mode Pengembangan:**
-    Perintah ini menggunakan `nodemon` untuk menjalankan server, yang akan secara otomatis me-restart ketika ada perubahan pada file.
+    Perintah ini menggunakan `nodemon` untuk menjalankan server, yang akan otomatis me-restart jika ada perubahan file.
 
     ```bash
-    npm run start
+    npm run start:dev
     ```
 
   * **Mode Produksi:**
-    Perintah ini menjalankan server dalam mode produksi, cocok untuk deployment.
 
     ```bash
-    npm run start-prod
+    npm run start:prod
     ```
 
-Setelah server berjalan, API akan dapat diakses di `http://localhost:5000`.
+Setelah server berjalan, API akan dapat diakses di `http://localhost:5000` (atau sesuai konfigurasi `.env` Anda).
 
 ## Linting
 
-Untuk memeriksa kualitas kode dan memastikan konsistensi, jalankan perintah lint:
+Untuk memeriksa kualitas dan konsistensi kode, jalankan perintah lint:
 
 ```bash
 npm run lint
